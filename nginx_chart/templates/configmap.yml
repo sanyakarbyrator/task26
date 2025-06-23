@@ -1,0 +1,14 @@
+{{- if .Values.enableconmap }}
+{{- range .Values.map }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}
+data:
+{{- range .maps }}
+  {{ .mapname }}: |
+{{ .value | indent 4 }}
+{{- end }}
+
+{{- end }}
+{{- end }}

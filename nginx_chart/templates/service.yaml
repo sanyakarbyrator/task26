@@ -1,0 +1,18 @@
+{{- range .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+spec:
+  type: {{ .type }}
+  ports:
+    - port: {{ .port }}
+      targetPort: {{ .conteinerport }}
+      protocol: TCP
+      {{- if eq .type "NodePort" }}
+      nodePort: {{ .nodeport }}
+      {{- end }}
+  selector:
+    {{ .podLabel.key }}: {{ .podLabel.name }}
+
+{{- end }}

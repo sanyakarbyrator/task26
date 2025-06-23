@@ -1,0 +1,28 @@
+services:
+  - name: apache-info
+    type: ClusterIP
+    port: 8888
+    conteinerport: 8888
+    podLabel:
+      key: app
+      name: apache-info
+
+
+
+deploy:
+  - name: apache-info
+    replicaCount: 1
+    podLabel: 
+      key: app
+      name: apache-info
+    containers:
+      - image:
+          repository: sanyakarbyurator/apache_info
+          tag: kub
+          pullPolicy: IfNotPresent
+        conteinerport: '8888'
+        name: apache-info
+
+ingressenable: false 
+enablesecrets: false 
+enableconmap: false 

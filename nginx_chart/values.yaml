@@ -1,0 +1,331 @@
+deploy:
+  - name: nginx
+    replicaCount: 1
+    podLabel: 
+      key: app
+      name: nginx
+    
+    volumes:
+    - name: nginx-conf
+      type: secret
+      secretName: nginx-config-secret
+    - name: html
+      type: configMap
+      configMapName: nginx-html-config
+    - name: run
+      type: emptyDir
+
+    containers:
+      - name: nginx
+        image:
+          repository: sanyakarbyurator/nginx_info
+          tag: kub
+          pullPolicy: IfNotPresent
+
+        conteinerport: '8085'
+
+        volumeMounts:
+          - name: nginx-conf
+            mountPath: /etc/nginx/nginx.conf
+            subPath: nginx.conf
+          - name: html
+            mountPath: /usr/share/nginx/html/index.html
+            subPath: index.html
+          - name: run
+            mountPath: /etc/nginx/.htpasswd
+            subPath: .htpasswd
+
+        resources:
+          reqcpu: 100m
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+    initenabled: true
+    init:
+      - name: auth-pass
+        image:
+        imagerep: amazonlinux
+        imagetag: latest
+        command:
+          - name:
+              - /bin/sh
+              - -c
+        args:
+          - name:
+              - yum install -y aws-cli -y && aws ssm get-parameter --name /nginx/basic-auth --with-decryption --query Parameter.Value --output text > /auth/.htpasswd
+        volumeMounts:
+          enabled: true
+          mounts:
+            - name: run
+              mountPath: /auth
+              subPath: ""
+        env:
+          enabled: true
+          secrets:
+            - name: AWS_ACCESS_KEY_ID
+              secname: aws-credentials
+              seckey: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              secname: aws-credentials
+              seckey: AWS_SECRET_ACCESS_KEY
+
+
+
+#----------------------------------
+
+services:
+  - type: NodePort
+    nodeport: 30080
+    name: nginx
+    port: 80
+    conteinerport: 8085
+    podLabel:
+      key: app
+      name: nginx
+
+#----------------------------------
+
+ingressenable: true
+
+ingress:
+  - class: nginx
+
+    name: nginx-ingress
+
+    annotations: 
+      - key: cert-manager.io/cluster-issuer
+        name: letsencrypt-prod
+      - key: nginx.ingress.kubernetes.io/ssl-redirect
+        name: '"false"'
+
+    hosts:
+      - host: nginx.ddns.net
+        paths:
+          - path: /
+            pathType: Prefix
+            servicename: nginx
+            serviceport: 80
+
+    tls:
+      - hosts:
+          - nginx.ddns.net
+        secretName: nginx-ddns-net-tls
+
+#-----------------------------
+
+enablesecrets: true
+secret:
+  - name: nginx-config-secret
+    type: Opaque
+    secrets: 
+        - secname: nginx.conf
+          value: |
+              load_module modules/ngx_http_image_filter_module.so;
+              worker_processes auto;
+
+              pid /tmp/nginx.pid;
+
+              events {
+              }
+
+              http {
+                  add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0";
+                  gzip on;
+                  include mime.types;
+                  auth_basic           "closed site";
+                  auth_basic_user_file /etc/nginx/.htpasswd;
+
+                  upstream balans {
+                      server 127.0.0.1:8080;
+                      server 127.0.0.1:8081;
+                  }
+
+                  server {
+                      listen 8085;
+                      server_name nginx.ddns.net;
+
+                      location /health {
+                          return 200 'OK';
+                          auth_basic off;
+                          add_header Content-Type text/plain;
+                      }
+
+                      location / {
+                          root /usr/share/nginx/html;
+                          index index.html;
+                      }
+
+                      location /secondpage {
+                          root /usr/share/nginx/image;
+                          try_files /chel.jpg =404;
+                      }
+
+                      location /music {
+                          alias /usr/share/nginx/sounds/;
+                          try_files дин_визель_Niggers_meme_clash_of_clans_EEMUSIC_ru.mp3 =404;
+                          add_header Content-Disposition "attachment; filename=song.mp3";
+                      }
+
+                      location /status {
+                          stub_status;
+                          allow 127.0.0.1;  
+                          deny all;
+                          auth_basic off;
+                          add_header Content-Type text/plain;                
+                      }       
+
+                      location /info.php {
+                          proxy_pass http://apache-info:8888/;
+                      }
+
+                      location /secondserver {
+                          return 301 https://www.youtube.com/watch?v=dQw4w9WgXcQ;
+                      }
+
+                      location /balans {
+                          proxy_pass http://balans;
+                      }
+
+                      location ~* \.jpg{
+                              return 301 $scheme://$host:30908/image1;
+                      }
+
+                      location ~* \.png{
+                              return 301 $scheme://$host:30908/image2;
+                      }
+
+                      location /image1 {
+                              alias /usr/share/nginx/image/evlhg3zrv7491.jpg;
+                      }
+
+                      location /image2 {
+                              alias /usr/share/nginx/image/png.png;
+                      }
+
+                      location /cpu {
+                          add_header Refresh "3";
+                          alias /usr/share/nginx/cpu.sh;
+                          include fastcgi_params;
+                          fastcgi_pass unix:/run/fcgiwrap.socket;
+                          fastcgi_param SCRIPT_FILENAME /usr/share/nginx/cpu.sh;
+                      }
+
+                      location /400 {
+                          return 404;
+                      }
+
+                      location /500 {
+                          return 502;
+                      }
+                  }
+              }
+
+
+#--------------------------------------
+
+enableconmap: true
+map:
+  - name: nginx-html-config
+    maps:
+      - mapname: index.html
+        value: |
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Nginx</title>
+              <style>
+                  body {
+                      margin: 0;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 100vh;
+                      flex-direction: column;
+                      font-family: Arial, sans-serif;
+                  }
+                  h1 {
+                    position: absolute;
+                      top: 20px;
+                      text-align: center;
+                  }
+                  a {
+                      margin-top: 10px;
+                      font-size: 18px;
+                      text-decoration: none;
+                      color: blue;
+                  }
+              </style>
+          </head>
+          <body>
+              <h1>Nginx</h1>
+              <a href="/secondpage">Далее</a>
+              <a href="/music">Скачать песню</a>
+              <a href="/info.php">Информация о php</a>
+              <a href="/secondserver">Другой сервер</a>
+              <a href="/balans">Балансировка</a>
+              <a href="/jkasdhf.jpg">.jpg</a>
+              <a href="/jfdgh.png">.png</a>
+              <a href="/cpu">cpu</a>
+              <a href="/400">400</a>
+              <a href="/500">500</a>
+          </body>
+          </html>
+
+      - mapname: cpu.sh
+        value: |
+          #!/bin/bash
+          echo -e "Content-type: text/html\n"
+
+          cpu_load=$(top -bn2 | grep "Cpu(s)" | tail -n 1 | awk '{print 100 - $8}')
+
+          echo "<html><head><meta charset='UTF-8'><title>CPU Load</title></head><body>
+          <h1>CPU Load: $cpu_load%</h1>
+          </body></html>" 
+      
+      - mapname: secondpage.html
+        value: |
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Картинка</title>
+              <style>
+                  body {
+                      margin: 0;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 100vh;
+                      background-color: #f5f5f5;
+                  }
+                  img {
+                      max-width: 100%;
+                      max-height: 100%;
+                  }
+              </style>
+          </head>
+          <body>
+            <img src="/usr/share/nginx/image/evlhg3zrv7491.jpg" alt="Картинка">
+          </body>
+          </html>
+
+      - mapname: info.php
+        value: |
+          <?php
+          phpinfo();
+          ?>

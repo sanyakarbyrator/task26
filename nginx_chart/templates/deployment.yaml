@@ -1,0 +1,154 @@
+{{- range .Values.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace | default "default" }}
+  labels:
+    {{ .podLabel.key }}: {{ .podLabel.name }}
+  {{- with .devannotations }}
+  annotations:
+    {{- range . }}
+    {{ .key }}: {{ .name }}
+    {{- end }}
+  {{- end }}
+spec:
+  replicas: {{ .replicaCount }}
+  selector:
+    matchLabels:
+      {{ .podLabel.key }}: {{ .podLabel.name }}
+  template:
+    metadata:
+      labels:
+        {{ .podLabel.key }}: {{ .podLabel.name }}
+    spec:
+      {{- if .nodeselector }}
+      nodeSelector:
+        {{ toYaml .nodeselector | nindent 8 }}
+      {{- end }}
+      {{- if .affinity }}
+      affinity:
+        {{ toYaml .affinity | nindent 8 }}
+      {{- end }}
+      {{- if .tolerations }}
+      tolerations:
+        {{ toYaml .tolerations | nindent 8 }}
+      {{- end }}
+
+      {{- if .initenabled }}
+      initContainers:
+        {{- range .init }}
+        - name: {{ .name }}
+          image: "{{ .imagerep }}:{{ .imagetag }}"
+          {{- if .command }}
+          command:
+            {{- range .command }}
+            {{ toJson .name }}
+            {{- end }}
+          {{- end }}
+          {{- if .args }}
+          args:
+            {{- range .args }}
+            {{ toJson .name }}
+            {{- end }}
+          {{- end }}
+          {{- if .volumeMounts.enabled }}
+          volumeMounts:
+            {{- range .volumeMounts.mounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .env.enabled }}
+          env:
+            {{- if .env.variables }}
+            {{- range .env.variables }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .env.secrets }}
+            {{- range .env.secrets }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secname }}
+                  key: {{ .seckey }}
+            {{- end }}
+            {{- end }}
+            {{- if .env.fromConfigMap }}
+            {{- range .env.fromConfigMap }}
+            - name: {{ .name }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .conname }}
+                  key: {{ .conkey }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .containers }}
+      containers:
+        {{- range .containers }}
+        - name: {{ .name }}
+          image: "{{ .image.repository }}:{{ .image.tag }}"
+          imagePullPolicy: {{ .image.pullPolicy }}
+          ports:
+            - name: https
+              containerPort: {{ .conteinerport }}
+              protocol: TCP
+          {{- with .livenessProbe }}
+          livenessProbe:
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .readinessProbe }}
+          readinessProbe:
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .volumeMounts }}
+          volumeMounts:
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .resources }}
+          resources:
+            requests:
+              cpu: {{ .reqcpu }}
+              {{- if .reqmem }}
+              memory: {{ .reqmem }}
+              {{- end }}
+            {{- if or .limcpu .limmem }}
+            limits:
+              {{- if .limcpu }}
+              cpu: {{ .limcpu }}
+              {{- end }}
+              {{- if .limmem }}
+              memory: {{ .limmem }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .volumes }}
+      volumes:
+        {{- range .volumes }}
+        - name: {{ .name }}
+          {{- if eq .type "secret" }}
+          secret:
+            secretName: {{ .secretName }}
+          {{- end }}
+          {{- if eq .type "configMap" }}
+          configMap:
+            name: {{ .configMapName }}
+          {{- end }}
+          {{- if eq .type "emptyDir" }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+{{- end }}
