@@ -8,16 +8,16 @@ spec:
   
   source:
     repoURL: https://github.com/sanyakarbyrator/task26
-    reegetRevision: HEAD
+    targetRevision: HEAD
     path: "apps"
+    helm:
+      valuesFile:
+      - values.yml
 
 
   destination:
     server: https://kubernetes.default.svc
     namespace: default
-    helm:
-      valuesFile:
-      - values.yml
      
 
   syncPolicy:
