@@ -11,7 +11,7 @@ spec:
     targetRevision: HEAD
     path: "apps"
     helm:
-      valueFile:
+      valueFiles:
         - values.yml
 
 
