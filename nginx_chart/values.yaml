@@ -16,7 +16,7 @@ deploy:
       type: emptyDir
 
     containers:
-      - name: nginx
+      - name: nginx-1
         image:
           repository: sanyakarbyurator/nginx_info
           tag: kub
@@ -271,7 +271,7 @@ map:
               </style>
           </head>
           <body>
-              <h1>Nginx_3</h1>
+              <h1>Nginx_4</h1>
               <a href="/secondpage">Далее</a>
               <a href="/music">Скачать песню</a>
               <a href="/info.php">Информация о php</a>
