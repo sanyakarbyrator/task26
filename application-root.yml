@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/sanyakarbyrator/task26
     targetRevision: HEAD
-    path: "apps"
+    path: "app"
     helm:
       valueFiles:
         - values.yml
